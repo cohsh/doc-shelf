@@ -259,14 +259,22 @@ export default function DocumentDetailPage() {
                   : (data.key_points || []).length > 0
                     ? data.key_points
                     : data.key_points_ja;
-              const actionItems =
+              const keywordExplanationsJa =
+                (data.keyword_explanations_ja || []).length > 0
+                  ? data.keyword_explanations_ja
+                  : data.action_items_ja || [];
+              const keywordExplanationsEn =
+                (data.keyword_explanations || []).length > 0
+                  ? data.keyword_explanations
+                  : data.action_items || [];
+              const keywordExplanations =
                 readingLang === "ja"
-                  ? (data.action_items_ja || []).length > 0
-                    ? data.action_items_ja
-                    : data.action_items
-                  : (data.action_items || []).length > 0
-                    ? data.action_items
-                    : data.action_items_ja;
+                  ? keywordExplanationsJa.length > 0
+                    ? keywordExplanationsJa
+                    : keywordExplanationsEn
+                  : keywordExplanationsEn.length > 0
+                    ? keywordExplanationsEn
+                    : keywordExplanationsJa;
 
               return (
                 <div key={reader} className="card" style={{ cursor: "default" }}>
@@ -294,13 +302,13 @@ export default function DocumentDetailPage() {
                       </ul>
                     </>
                   )}
-                  {(actionItems || []).length > 0 && (
+                  {(keywordExplanations || []).length > 0 && (
                     <>
                       <p style={{ fontWeight: 600, marginBottom: 4 }}>
-                        {readingLang === "ja" ? "アクション" : "Action Items"}
+                        {readingLang === "ja" ? "キーワード解説" : "Keyword Explanations"}
                       </p>
                       <ul style={{ marginLeft: 18, marginBottom: 10 }}>
-                        {(actionItems || []).map((item, i) => (
+                        {(keywordExplanations || []).map((item, i) => (
                           <li key={i}>{item}</li>
                         ))}
                       </ul>

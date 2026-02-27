@@ -15,11 +15,11 @@
       "type": "array",
       "items": { "type": "string" }
     },
-    "action_items": {
+    "keyword_explanations": {
       "type": "array",
       "items": { "type": "string" }
     },
-    "action_items_ja": {
+    "keyword_explanations_ja": {
       "type": "array",
       "items": { "type": "string" }
     },
@@ -37,8 +37,8 @@
     "summary_ja",
     "key_points",
     "key_points_ja",
-    "action_items",
-    "action_items_ja",
+    "keyword_explanations",
+    "keyword_explanations_ja",
     "tags",
     "confidence_notes"
   ]

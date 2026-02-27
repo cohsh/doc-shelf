@@ -222,15 +222,21 @@ def _render_markdown(record: dict, text: str) -> str:
                     lines.append(f"- {item}")
                 lines.append("")
 
-            if data.get("action_items"):
-                lines.append("#### Action Items")
-                for item in data["action_items"]:
+            keyword_explanations = (
+                data.get("keyword_explanations") or data.get("action_items") or []
+            )
+            if keyword_explanations:
+                lines.append("#### Keyword Explanations")
+                for item in keyword_explanations:
                     lines.append(f"- {item}")
                 lines.append("")
 
-            if data.get("action_items_ja"):
-                lines.append("#### 次のアクション")
-                for item in data["action_items_ja"]:
+            keyword_explanations_ja = (
+                data.get("keyword_explanations_ja") or data.get("action_items_ja") or []
+            )
+            if keyword_explanations_ja:
+                lines.append("#### キーワード解説")
+                for item in keyword_explanations_ja:
                     lines.append(f"- {item}")
                 lines.append("")
 

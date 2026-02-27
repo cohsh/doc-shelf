@@ -14,6 +14,7 @@ Return JSON matching the schema with these constraints:
 - Fill missing fields with reasonable empty values ("" or [])
 - Keep `summary` and `summary_ja` each within ~1500 characters
 - Keep each point in arrays to one sentence when possible
+- Fill `keyword_explanations` and `keyword_explanations_ja` with short term explanations (3-8 items when meaningful)
 - `tags` should be short topic labels (3-10 items)
 
 Document text:

@@ -28,8 +28,10 @@ export interface ReadingResult {
   summary_ja: string;
   key_points: string[];
   key_points_ja: string[];
-  action_items: string[];
-  action_items_ja: string[];
+  keyword_explanations: string[];
+  keyword_explanations_ja: string[];
+  action_items?: string[];
+  action_items_ja?: string[];
   tags: string[];
   confidence_notes: string;
 }
