@@ -8,8 +8,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
-from src import library, pdf_extractor, storage
-from src.exceptions import DocShelfError, StorageError
+from src import library, pdf_extractor, reader_claude, reader_codex, storage
+from src.exceptions import DocShelfError, ReaderError, StorageError
 
 console = Console()
 logger = logging.getLogger("doc-shelf")
@@ -25,9 +25,20 @@ def cli(verbose: bool) -> None:
 
 @cli.command()
 @click.argument("pdf_path", type=click.Path(exists=True))
+@click.option(
+    "--reader",
+    type=click.Choice(["none", "claude", "codex", "both"]),
+    default="both",
+    help="Which reader(s) to run",
+)
 @click.option("--shelf", "shelf_ids", multiple=True, help="Assign to shelf(s)")
 @click.option("--output-dir", type=click.Path(), default="library", help="Output directory")
-def add(pdf_path: str, shelf_ids: tuple[str, ...], output_dir: str) -> None:
+def add(
+    pdf_path: str,
+    reader: str,
+    shelf_ids: tuple[str, ...],
+    output_dir: str,
+) -> None:
     """Add a PDF document to the library."""
     console.print(f"[bold]Extracting text from:[/bold] {pdf_path}")
     try:
@@ -37,10 +48,40 @@ def add(pdf_path: str, shelf_ids: tuple[str, ...], output_dir: str) -> None:
         raise SystemExit(1)
 
     console.print(f"  Pages: {document.page_count}, Characters: {document.char_count}")
+    readings: dict[str, dict] = {}
+
+    if reader in ("claude", "both"):
+        console.print("\n[bold blue]Running Claude reader...[/bold blue]")
+        try:
+            readings["claude"] = reader_claude.read(document)
+            console.print("  [green]Claude reading complete.[/green]")
+        except ReaderError as e:
+            console.print(f"  [yellow]Claude reader failed:[/yellow] {e}")
+            if reader == "claude":
+                raise SystemExit(1)
+
+    if reader in ("codex", "both"):
+        console.print("\n[bold green]Running Codex reader...[/bold green]")
+        try:
+            readings["codex"] = reader_codex.read(document)
+            console.print("  [green]Codex reading complete.[/green]")
+        except ReaderError as e:
+            console.print(f"  [yellow]Codex reader failed:[/yellow] {e}")
+            if reader == "codex":
+                raise SystemExit(1)
+
+    if reader != "none" and not readings:
+        console.print("[red]Error: No reader produced results.[/red]")
+        raise SystemExit(1)
 
     console.print("\n[bold]Saving document...[/bold]")
     try:
-        document_id = storage.save(document, output_dir, source_name=pdf_path)
+        document_id = storage.save(
+            document,
+            output_dir,
+            source_name=pdf_path,
+            readings=readings,
+        )
         library.update_index(
             document_id,
             output_dir,
@@ -51,6 +92,8 @@ def add(pdf_path: str, shelf_ids: tuple[str, ...], output_dir: str) -> None:
         raise SystemExit(1)
 
     console.print(f"\n[bold green]Done![/bold green] Document ID: [cyan]{document_id}[/cyan]")
+    if readings:
+        console.print(f"  Readers:  {', '.join(readings.keys())}")
     console.print(f"  JSON:     {output_dir}/json/{document_id}.json")
     console.print(f"  Markdown: {output_dir}/markdown/{document_id}.md")
 
@@ -96,6 +139,7 @@ def list_documents(fmt: str, sort_by: str, shelf_id: str | None, output_dir: str
     table.add_column("Author", max_width=30)
     table.add_column("Pages", justify="center")
     table.add_column("Uploaded", justify="center")
+    table.add_column("Readers", justify="center")
 
     for d in documents:
         table.add_row(
@@ -103,6 +147,7 @@ def list_documents(fmt: str, sort_by: str, shelf_id: str | None, output_dir: str
             d.get("author", "Unknown"),
             str(d.get("page_count", 0)),
             d.get("uploaded_date", ""),
+            ", ".join(d.get("readers_used", [])),
         )
 
     console.print(table)
@@ -112,7 +157,9 @@ def list_documents(fmt: str, sort_by: str, shelf_id: str | None, output_dir: str
 @click.argument("query")
 @click.option(
     "--field",
-    type=click.Choice(["title", "author", "subject", "tags", "text", "all"]),
+    type=click.Choice(
+        ["title", "author", "subject", "tags", "text", "readers", "readings", "all"]
+    ),
     default="all",
     help="Search field",
 )

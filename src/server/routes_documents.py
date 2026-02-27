@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse
 
 from src import library
 from src.exceptions import StorageError
@@ -66,17 +66,15 @@ def get_document_text(document_id: str, request: Request) -> dict:
 
 
 @router.get("/documents/{document_id}/pdf")
-def get_document_pdf(document_id: str, request: Request) -> StreamingResponse:
+def get_document_pdf(document_id: str, request: Request) -> FileResponse:
     output_dir = request.app.state.output_dir
     pdf_path = os.path.join(output_dir, "pdfs", f"{document_id}.pdf")
     if not os.path.exists(pdf_path):
         raise HTTPException(status_code=404, detail=f"PDF not found: {document_id}")
 
-    return StreamingResponse(
-        open(pdf_path, "rb"),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{document_id}.pdf"'},
-    )
+    # Avoid non-ASCII header encoding issues by returning the file directly
+    # without building Content-Disposition from user-visible IDs.
+    return FileResponse(pdf_path, media_type="application/pdf")
 
 
 @router.delete("/documents/{document_id}")

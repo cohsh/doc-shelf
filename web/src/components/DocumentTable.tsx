@@ -42,6 +42,7 @@ export default function DocumentTable({
           <th className="sortable" onClick={() => onSort("uploaded_date")}>
             Uploaded {renderSortIndicator("uploaded_date")}
           </th>
+          <th>Readers</th>
           <th>Tags</th>
         </tr>
       </thead>
@@ -58,6 +59,9 @@ export default function DocumentTable({
             <td>{doc.page_count}</td>
             <td style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
               {doc.uploaded_date}
+            </td>
+            <td style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
+              {(doc.readers_used || []).join(", ") || "-"}
             </td>
             <td>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>

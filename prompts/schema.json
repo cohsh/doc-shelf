@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string" },
+    "author": { "type": "string" },
+    "document_type": { "type": "string" },
+    "summary": { "type": "string" },
+    "summary_ja": { "type": "string" },
+    "key_points": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "key_points_ja": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "action_items": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "action_items_ja": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "confidence_notes": { "type": "string" }
+  },
+  "required": [
+    "title",
+    "author",
+    "document_type",
+    "summary",
+    "summary_ja",
+    "key_points",
+    "key_points_ja",
+    "action_items",
+    "action_items_ja",
+    "tags",
+    "confidence_notes"
+  ]
+}

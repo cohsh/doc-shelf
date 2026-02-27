@@ -15,7 +15,12 @@ from src.pdf_extractor import ExtractedDocument
 logger = logging.getLogger(__name__)
 
 
-def save(document: ExtractedDocument, output_dir: str, source_name: str = "") -> str:
+def save(
+    document: ExtractedDocument,
+    output_dir: str,
+    source_name: str = "",
+    readings: dict[str, dict] | None = None,
+) -> str:
     """Save extracted document data and source PDF. Returns document_id."""
     title = _get_title(document.metadata, source_name)
     document_id = generate_document_id(title)
@@ -32,7 +37,7 @@ def save(document: ExtractedDocument, output_dir: str, source_name: str = "") ->
 
     document_id = _resolve_conflict(document_id, json_dir)
 
-    record = _build_json_record(document, document_id, source_name)
+    record = _build_json_record(document, document_id, source_name, readings or {})
 
     json_path = os.path.join(json_dir, f"{document_id}.json")
     try:
@@ -118,12 +123,39 @@ def _tags_from_metadata(metadata: dict) -> list[str]:
     return tags
 
 
+def _tags_from_readings(readings: dict[str, dict]) -> list[str]:
+    tags: list[str] = []
+    for data in readings.values():
+        for tag in data.get("tags", []) or []:
+            if isinstance(tag, str):
+                clean = tag.strip()
+                if clean and clean.lower() not in {t.lower() for t in tags}:
+                    tags.append(clean)
+            if len(tags) >= 12:
+                return tags
+    return tags
+
+
+def _merge_tags(meta_tags: list[str], reading_tags: list[str]) -> list[str]:
+    merged: list[str] = []
+    for tag in meta_tags + reading_tags:
+        if tag and tag.lower() not in {t.lower() for t in merged}:
+            merged.append(tag)
+        if len(merged) >= 12:
+            break
+    return merged
+
+
 def _build_json_record(
     document: ExtractedDocument,
     document_id: str,
     source_name: str,
+    readings: dict[str, dict],
 ) -> dict:
     metadata = document.metadata
+    meta_tags = _tags_from_metadata(metadata)
+    reading_tags = _tags_from_readings(readings)
+
     return {
         "document_id": document_id,
         "title": _get_title(metadata, source_name),
@@ -136,7 +168,9 @@ def _build_json_record(
         "source_file": document.source_path,
         "page_count": document.page_count,
         "char_count": document.char_count,
-        "tags": _tags_from_metadata(metadata),
+        "tags": _merge_tags(meta_tags, reading_tags),
+        "readers_used": list(readings.keys()),
+        "readings": readings,
     }
 
 
@@ -150,7 +184,61 @@ def _render_markdown(record: dict, text: str) -> str:
     lines.append(f"**Pages:** {record['page_count']}  ")
     lines.append(f"**Characters:** {record['char_count']}  ")
     lines.append(f"**Uploaded:** {record['uploaded_date']}  ")
+    if record.get("readers_used"):
+        lines.append(f"**Readers:** {', '.join(record['readers_used'])}  ")
     lines.append("")
+
+    readings = record.get("readings", {})
+    if readings:
+        lines.append("## LLM Readings")
+        lines.append("")
+        for reader_name in ("claude", "codex"):
+            data = readings.get(reader_name)
+            if not data:
+                continue
+
+            lines.append(f"### {reader_name.capitalize()}")
+            lines.append("")
+
+            if data.get("summary"):
+                lines.append("#### Summary")
+                lines.append(data["summary"])
+                lines.append("")
+
+            if data.get("summary_ja"):
+                lines.append("#### 要約")
+                lines.append(data["summary_ja"])
+                lines.append("")
+
+            if data.get("key_points"):
+                lines.append("#### Key Points")
+                for item in data["key_points"]:
+                    lines.append(f"- {item}")
+                lines.append("")
+
+            if data.get("key_points_ja"):
+                lines.append("#### 重要ポイント")
+                for item in data["key_points_ja"]:
+                    lines.append(f"- {item}")
+                lines.append("")
+
+            if data.get("action_items"):
+                lines.append("#### Action Items")
+                for item in data["action_items"]:
+                    lines.append(f"- {item}")
+                lines.append("")
+
+            if data.get("action_items_ja"):
+                lines.append("#### 次のアクション")
+                for item in data["action_items_ja"]:
+                    lines.append(f"- {item}")
+                lines.append("")
+
+            if data.get("confidence_notes"):
+                lines.append("#### Confidence Notes")
+                lines.append(data["confidence_notes"])
+                lines.append("")
+
     lines.append("---")
     lines.append("")
     lines.append("## Extracted Text (Preview)")

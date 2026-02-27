@@ -16,6 +16,7 @@ interface UploadItem {
 export default function UploadPage() {
   const navigate = useNavigate();
   const [files, setFiles] = useState<File[]>([]);
+  const [reader, setReader] = useState<"none" | "claude" | "codex" | "both">("both");
   const [items, setItems] = useState<UploadItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const pollingRef = useRef<number | null>(null);
@@ -69,7 +70,7 @@ export default function UploadPage() {
     await Promise.all(
       withTaskIds.map(async (item, i) => {
         try {
-          const res = await uploadDocument(item.file, selectedShelves);
+          const res = await uploadDocument(item.file, reader, selectedShelves);
           withTaskIds[i] = { ...withTaskIds[i], taskId: res.task_id };
         } catch (e) {
           withTaskIds[i] = {
@@ -83,7 +84,7 @@ export default function UploadPage() {
 
     setItems(withTaskIds);
     setUploading(false);
-  }, [files, selectedShelves]);
+  }, [files, reader, selectedShelves]);
 
   const toggleShelf = (shelfId: string) => {
     setSelectedShelves((prev) =>
@@ -199,6 +200,28 @@ export default function UploadPage() {
               </div>
             </div>
           )}
+
+          <div style={{ marginTop: 12 }}>
+            <span style={{ fontWeight: 500, fontSize: 14 }}>Reader:</span>
+            <div className="reader-selector">
+              {(["both", "claude", "codex", "none"] as const).map((r) => (
+                <label key={r} className="reader-option">
+                  <input
+                    type="radio"
+                    name="reader"
+                    value={r}
+                    checked={reader === r}
+                    onChange={() => setReader(r)}
+                  />
+                  {r === "both"
+                    ? "Both"
+                    : r === "none"
+                      ? "None (extract only)"
+                      : r.charAt(0).toUpperCase() + r.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
 
           <button
             className="btn btn-primary"

@@ -19,8 +19,9 @@ This project was implemented with **GPT-5.3-Codex** (Codex coding agent workflow
 ## Features
 
 - Multi-file PDF upload
+- Optional LLM reading with Claude and/or Codex
 - Shelf management (create / rename / delete / assign)
-- Search by title, author, subject, tags, and full extracted text
+- Search by title, author, subject, tags, full extracted text, and reading content
 - Inline PDF viewer
 - Extracted text viewer
 - CLI support for add/list/search/show/shelf management
@@ -32,6 +33,8 @@ doc-shelf/
 ├── src/
 │   ├── main.py                 # CLI entry point
 │   ├── pdf_extractor.py        # PDF text extraction (PyMuPDF)
+│   ├── reader_claude.py        # Claude Code CLI reader
+│   ├── reader_codex.py         # Codex CLI reader
 │   ├── storage.py              # JSON / Markdown / Text / PDF storage
 │   ├── library.py              # Index and shelf management
 │   └── server/
@@ -40,6 +43,7 @@ doc-shelf/
 │       ├── routes_shelves.py   # Shelf API
 │       ├── routes_upload.py    # Upload + task API
 │       └── tasks.py            # Background ingest pipeline
+├── prompts/                    # Generic document reading prompt/schema
 └── web/                        # React + TypeScript + Vite
 ```
 
@@ -50,6 +54,17 @@ doc-shelf/
 ```bash
 pip install -e ".[dev]"
 ```
+
+### 1.5 Optional LLM Readers
+
+Install one or both CLIs if you want reading summaries:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+npm install -g @openai/codex
+```
+
+If you do not install either, use `reader=none` in upload or `--reader none` in CLI.
 
 ### 2. Frontend
 
@@ -94,13 +109,19 @@ npm run dev
 # Add a PDF
 doc-shelf add ./sample.pdf
 
+# Add a PDF without LLM reading
+doc-shelf add ./sample.pdf --reader none
+
+# Add a PDF with only Claude
+doc-shelf add ./sample.pdf --reader claude
+
 # Add to shelves
 doc-shelf add ./sample.pdf --shelf reports --shelf personal
 
 # List documents
 doc-shelf list
 
-# Search (including extracted text)
+# Search (including extracted text + LLM reading)
 doc-shelf search "meeting" --field all
 
 # List shelves

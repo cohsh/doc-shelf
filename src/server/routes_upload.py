@@ -16,8 +16,15 @@ router = APIRouter()
 async def upload_document(
     request: Request,
     file: UploadFile,
+    reader: str = Form("both"),
     shelves: str = Form(""),
 ) -> dict:
+    if reader not in ("none", "claude", "codex", "both"):
+        raise HTTPException(
+            status_code=400,
+            detail="reader must be none, claude, codex, or both",
+        )
+
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
 
@@ -39,7 +46,7 @@ async def upload_document(
             request.app.state.output_dir,
             file.filename,
         ),
-        kwargs={"shelves": shelf_list},
+        kwargs={"shelves": shelf_list, "reader_choice": reader},
         daemon=True,
     )
     thread.start()

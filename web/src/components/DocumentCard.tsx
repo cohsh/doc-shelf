@@ -15,6 +15,9 @@ export default function DocumentCard({ document }: Props) {
       <div className="paper-card-meta">
         {(document.author || "Unknown") + " · " + document.page_count + " pages · " + document.uploaded_date}
         {document.subject && <> · <em>{document.subject}</em></>}
+        {(document.readers_used || []).length > 0 && (
+          <> · {(document.readers_used || []).join(", ")}</>
+        )}
       </div>
       <div className="paper-card-tags">
         {document.tags.slice(0, 5).map((tag) => (

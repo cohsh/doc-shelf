@@ -6,6 +6,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from src.exceptions import ReaderError
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,9 +56,11 @@ def run_ingest_pipeline(
     output_dir: str,
     source_name: str,
     shelves: list[str] | None = None,
+    reader_choice: str = "both",
 ) -> None:
-    """Run extract -> save -> index pipeline in a background thread."""
+    """Run extract -> optional read -> save -> index pipeline."""
     from src import library, pdf_extractor, storage
+    from src import reader_claude, reader_codex
 
     try:
         task_manager.update(
@@ -66,8 +70,48 @@ def run_ingest_pipeline(
         )
         document = pdf_extractor.extract(pdf_path)
 
-        task_manager.update(task_id, status="saving", progress_message="Saving document...")
-        document_id = storage.save(document, output_dir, source_name=source_name)
+        readings: dict[str, dict] = {}
+
+        if reader_choice in ("claude", "both"):
+            task_manager.update(
+                task_id,
+                status="reading_claude",
+                progress_message="Claude is reading the document...",
+            )
+            try:
+                readings["claude"] = reader_claude.read(document)
+            except ReaderError as e:
+                logger.error("Claude reader failed: %s", e)
+                if reader_choice == "claude":
+                    raise
+
+        if reader_choice in ("codex", "both"):
+            task_manager.update(
+                task_id,
+                status="reading_codex",
+                progress_message="Codex is reading the document...",
+            )
+            try:
+                readings["codex"] = reader_codex.read(document)
+            except ReaderError as e:
+                logger.error("Codex reader failed: %s", e)
+                if reader_choice == "codex":
+                    raise
+
+        if reader_choice != "none" and not readings:
+            raise ReaderError("No reader produced results")
+
+        task_manager.update(
+            task_id,
+            status="saving",
+            progress_message="Saving document...",
+        )
+        document_id = storage.save(
+            document,
+            output_dir,
+            source_name=source_name,
+            readings=readings,
+        )
         library.update_index(document_id, output_dir, shelves=shelves)
 
         task_manager.update(

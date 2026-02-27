@@ -16,7 +16,22 @@ export interface DocumentSummary {
   page_count: number;
   char_count: number;
   tags: string[];
+  readers_used?: string[];
   shelves?: string[];
+}
+
+export interface ReadingResult {
+  title: string;
+  author: string;
+  document_type: string;
+  summary: string;
+  summary_ja: string;
+  key_points: string[];
+  key_points_ja: string[];
+  action_items: string[];
+  action_items_ja: string[];
+  tags: string[];
+  confidence_notes: string;
 }
 
 export interface DocumentDetail {
@@ -32,12 +47,19 @@ export interface DocumentDetail {
   page_count: number;
   char_count: number;
   tags: string[];
+  readers_used?: string[];
+  readings?: {
+    claude?: ReadingResult;
+    codex?: ReadingResult;
+  };
   shelves?: string[];
 }
 
 export type TaskStatusValue =
   | "pending"
   | "extracting"
+  | "reading_claude"
+  | "reading_codex"
   | "saving"
   | "completed"
   | "failed";

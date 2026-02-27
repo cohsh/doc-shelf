@@ -109,6 +109,8 @@ export default function DocumentDetailPage() {
 
   const pdfUrl = `/api/documents/${document.document_id}/pdf`;
   const currentShelves = document.shelves || [];
+  const readings = document.readings || {};
+  const hasReadings = Boolean(readings.claude || readings.codex);
 
   return (
     <div>
@@ -203,6 +205,70 @@ export default function DocumentDetailPage() {
           </button>
         </div>
       </div>
+
+      {hasReadings && (
+        <div style={{ marginTop: 24 }}>
+          <h2 style={{ marginBottom: 12 }}>LLM Reading</h2>
+          <div className="card-grid">
+            {(["claude", "codex"] as const).map((reader) => {
+              const data = readings[reader];
+              if (!data) return null;
+              return (
+                <div key={reader} className="card" style={{ cursor: "default" }}>
+                  <h3 style={{ marginBottom: 8 }}>{reader.toUpperCase()}</h3>
+                  <p style={{ marginBottom: 10, color: "var(--color-text-secondary)" }}>
+                    {data.document_type || "document"}
+                  </p>
+                  {data.summary && (
+                    <>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>Summary</p>
+                      <p style={{ marginBottom: 10 }}>{data.summary}</p>
+                    </>
+                  )}
+                  {data.summary_ja && (
+                    <>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>要約</p>
+                      <p style={{ marginBottom: 10 }}>{data.summary_ja}</p>
+                    </>
+                  )}
+                  {(data.key_points || []).length > 0 && (
+                    <>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>Key Points</p>
+                      <ul style={{ marginLeft: 18, marginBottom: 10 }}>
+                        {(data.key_points || []).map((point, i) => (
+                          <li key={i}>{point}</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {(data.action_items || []).length > 0 && (
+                    <>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>Action Items</p>
+                      <ul style={{ marginLeft: 18, marginBottom: 10 }}>
+                        {(data.action_items || []).map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {(data.tags || []).length > 0 && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                      {(data.tags || []).map((tag) => (
+                        <TagBadge key={`${reader}-${tag}`} tag={tag} />
+                      ))}
+                    </div>
+                  )}
+                  {data.confidence_notes && (
+                    <p style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>
+                      {data.confidence_notes}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {showPdf && (
         <div style={{ marginTop: 24 }}>

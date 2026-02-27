@@ -1,0 +1,20 @@
+You are reading a generic PDF document (not necessarily an academic paper).
+
+Document metadata:
+- Title: {document_title}
+- Author: {document_author}
+- Subject: {document_subject}
+
+Task:
+Read the document content and produce a structured summary.
+Focus on practical comprehension for a bookshelf app.
+
+Return JSON matching the schema with these constraints:
+- Use plain, concise language
+- Fill missing fields with reasonable empty values ("" or [])
+- Keep `summary` and `summary_ja` each within ~1500 characters
+- Keep each point in arrays to one sentence when possible
+- `tags` should be short topic labels (3-10 items)
+
+Document text:
+{document_text}

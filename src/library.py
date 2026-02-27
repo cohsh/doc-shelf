@@ -71,6 +71,7 @@ def update_index(
         "page_count": doc_data.get("page_count", 0),
         "char_count": doc_data.get("char_count", 0),
         "tags": doc_data.get("tags", []),
+        "readers_used": doc_data.get("readers_used", []),
         "shelves": shelves if shelves is not None else [],
     }
 
@@ -338,6 +339,26 @@ def _matches(entry: dict, query: str, field: str, output_dir: str) -> bool:
     author = entry.get("author", "").lower()
     subject = entry.get("subject", "").lower()
     tags = [t.lower() for t in entry.get("tags", [])]
+    readers = [r.lower() for r in entry.get("readers_used", [])]
+
+    def _matches_readings(document_id: str) -> bool:
+        try:
+            data = get_document(document_id, output_dir)
+        except StorageError:
+            return False
+
+        readings = data.get("readings", {})
+        for reader_data in readings.values():
+            if not isinstance(reader_data, dict):
+                continue
+            for value in reader_data.values():
+                if isinstance(value, str) and query in value.lower():
+                    return True
+                if isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, str) and query in item.lower():
+                            return True
+        return False
 
     if field == "title":
         return query in title
@@ -347,6 +368,10 @@ def _matches(entry: dict, query: str, field: str, output_dir: str) -> bool:
         return query in subject
     if field == "tags":
         return any(query in t for t in tags)
+    if field == "readers":
+        return any(query in r for r in readers)
+    if field == "readings":
+        return _matches_readings(entry["document_id"])
     if field == "text":
         try:
             text = get_document_text(entry["document_id"], output_dir)
@@ -357,6 +382,10 @@ def _matches(entry: dict, query: str, field: str, output_dir: str) -> bool:
     if query in title or query in author or query in subject:
         return True
     if any(query in t for t in tags):
+        return True
+    if any(query in r for r in readers):
+        return True
+    if _matches_readings(entry["document_id"]):
         return True
 
     try:

@@ -47,10 +47,12 @@ export async function deleteDocument(documentId: string): Promise<void> {
 
 export async function uploadDocument(
   file: File,
+  reader: "none" | "claude" | "codex" | "both" = "both",
   shelves: string[] = [],
 ): Promise<{ task_id: string }> {
   const form = new FormData();
   form.append("file", file);
+  form.append("reader", reader);
   if (shelves.length > 0) {
     form.append("shelves", shelves.join(","));
   }
