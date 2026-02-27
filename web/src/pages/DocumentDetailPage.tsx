@@ -27,6 +27,7 @@ export default function DocumentDetailPage() {
 
   const [editingShelves, setEditingShelves] = useState(false);
   const [selectedShelfIds, setSelectedShelfIds] = useState<string[]>([]);
+  const [readingLang, setReadingLang] = useState<"ja" | "en">("ja");
 
   useEffect(() => {
     if (!id) return;
@@ -111,6 +112,7 @@ export default function DocumentDetailPage() {
   const currentShelves = document.shelves || [];
   const readings = document.readings || {};
   const hasReadings = Boolean(readings.claude || readings.codex);
+  const readingCount = (readings.claude ? 1 : 0) + (readings.codex ? 1 : 0);
 
   return (
     <div>
@@ -208,44 +210,97 @@ export default function DocumentDetailPage() {
 
       {hasReadings && (
         <div style={{ marginTop: 24 }}>
-          <h2 style={{ marginBottom: 12 }}>LLM Reading</h2>
-          <div className="card-grid">
+          <div
+            style={{
+              marginBottom: 12,
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <h2>LLM Reading</h2>
+            <div className="lang-toggle">
+              <button
+                className={`lang-toggle-btn ${readingLang === "ja" ? "active" : ""}`}
+                onClick={() => setReadingLang("ja")}
+              >
+                Ja
+              </button>
+              <button
+                className={`lang-toggle-btn ${readingLang === "en" ? "active" : ""}`}
+                onClick={() => setReadingLang("en")}
+              >
+                En
+              </button>
+            </div>
+          </div>
+          <div
+            className="card-grid"
+            style={
+              readingCount === 1
+                ? { gridTemplateColumns: "minmax(0, 1fr)" }
+                : undefined
+            }
+          >
             {(["claude", "codex"] as const).map((reader) => {
               const data = readings[reader];
               if (!data) return null;
+
+              const summary =
+                readingLang === "ja"
+                  ? data.summary_ja || data.summary
+                  : data.summary || data.summary_ja;
+              const keyPoints =
+                readingLang === "ja"
+                  ? (data.key_points_ja || []).length > 0
+                    ? data.key_points_ja
+                    : data.key_points
+                  : (data.key_points || []).length > 0
+                    ? data.key_points
+                    : data.key_points_ja;
+              const actionItems =
+                readingLang === "ja"
+                  ? (data.action_items_ja || []).length > 0
+                    ? data.action_items_ja
+                    : data.action_items
+                  : (data.action_items || []).length > 0
+                    ? data.action_items
+                    : data.action_items_ja;
+
               return (
                 <div key={reader} className="card" style={{ cursor: "default" }}>
                   <h3 style={{ marginBottom: 8 }}>{reader.toUpperCase()}</h3>
                   <p style={{ marginBottom: 10, color: "var(--color-text-secondary)" }}>
                     {data.document_type || "document"}
                   </p>
-                  {data.summary && (
+                  {summary && (
                     <>
-                      <p style={{ fontWeight: 600, marginBottom: 4 }}>Summary</p>
-                      <p style={{ marginBottom: 10 }}>{data.summary}</p>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>
+                        {readingLang === "ja" ? "要約" : "Summary"}
+                      </p>
+                      <p style={{ marginBottom: 10 }}>{summary}</p>
                     </>
                   )}
-                  {data.summary_ja && (
+                  {(keyPoints || []).length > 0 && (
                     <>
-                      <p style={{ fontWeight: 600, marginBottom: 4 }}>要約</p>
-                      <p style={{ marginBottom: 10 }}>{data.summary_ja}</p>
-                    </>
-                  )}
-                  {(data.key_points || []).length > 0 && (
-                    <>
-                      <p style={{ fontWeight: 600, marginBottom: 4 }}>Key Points</p>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>
+                        {readingLang === "ja" ? "重要ポイント" : "Key Points"}
+                      </p>
                       <ul style={{ marginLeft: 18, marginBottom: 10 }}>
-                        {(data.key_points || []).map((point, i) => (
+                        {(keyPoints || []).map((point, i) => (
                           <li key={i}>{point}</li>
                         ))}
                       </ul>
                     </>
                   )}
-                  {(data.action_items || []).length > 0 && (
+                  {(actionItems || []).length > 0 && (
                     <>
-                      <p style={{ fontWeight: 600, marginBottom: 4 }}>Action Items</p>
+                      <p style={{ fontWeight: 600, marginBottom: 4 }}>
+                        {readingLang === "ja" ? "アクション" : "Action Items"}
+                      </p>
                       <ul style={{ marginLeft: 18, marginBottom: 10 }}>
-                        {(data.action_items || []).map((item, i) => (
+                        {(actionItems || []).map((item, i) => (
                           <li key={i}>{item}</li>
                         ))}
                       </ul>
