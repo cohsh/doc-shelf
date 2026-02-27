@@ -5,6 +5,7 @@ import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 from src.exceptions import ReaderError
 
@@ -52,23 +53,30 @@ class TaskManager:
 def run_ingest_pipeline(
     task_id: str,
     task_manager: TaskManager,
-    pdf_path: str,
+    source_path: str,
     output_dir: str,
     source_name: str,
     shelves: list[str] | None = None,
     reader_choice: str = "both",
 ) -> None:
     """Run extract -> optional read -> save -> index pipeline."""
-    from src import library, pdf_extractor, storage
+    from src import eml_extractor, library, pdf_extractor, storage
     from src import reader_claude, reader_codex
 
     try:
+        source_ext = Path(source_name or source_path).suffix.lower()
+        source_label = "PDF" if source_ext == ".pdf" else "EML" if source_ext == ".eml" else "document"
         task_manager.update(
             task_id,
             status="extracting",
-            progress_message="Extracting text from PDF...",
+            progress_message=f"Extracting text from {source_label}...",
         )
-        document = pdf_extractor.extract(pdf_path)
+        if source_ext == ".pdf":
+            document = pdf_extractor.extract(source_path)
+        elif source_ext == ".eml":
+            document = eml_extractor.extract(source_path)
+        else:
+            raise ValueError("Unsupported file type. Only PDF and EML are accepted.")
 
         readings: dict[str, dict] = {}
 
@@ -131,5 +139,5 @@ def run_ingest_pipeline(
             completed_at=datetime.now(timezone.utc).isoformat(),
         )
     finally:
-        if os.path.exists(pdf_path):
-            os.unlink(pdf_path)
+        if os.path.exists(source_path):
+            os.unlink(source_path)

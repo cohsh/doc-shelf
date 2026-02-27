@@ -65,6 +65,7 @@ def update_index(
     entry = {
         "document_id": document_id,
         "title": doc_data.get("title", ""),
+        "source_type": doc_data.get("source_type", ""),
         "author": doc_data.get("author", ""),
         "subject": doc_data.get("subject", ""),
         "uploaded_date": doc_data.get("uploaded_date", ""),

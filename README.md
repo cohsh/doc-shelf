@@ -1,8 +1,8 @@
 # Doc Shelf
 
-Doc Shelf is a generic PDF bookshelf app based on `paper-shelf`.
+Doc Shelf is a generic document bookshelf app based on `paper-shelf`.
 
-It is focused on organizing and reading any PDF files:
+It is focused on organizing and reading PDF/EML files:
 - no paper recommendation/discovery features
 - no related-paper or daily-feed features
 - simple upload, shelf organization, browsing, and search
@@ -18,11 +18,11 @@ This project was implemented with **GPT-5.3-Codex** (Codex coding agent workflow
 
 ## Features
 
-- Multi-file PDF upload
+- Multi-file PDF/EML upload
 - Optional LLM reading with Claude and/or Codex
 - Shelf management (create / rename / delete / assign)
 - Search by title, author, subject, tags, full extracted text, and reading content
-- Inline PDF viewer
+- Inline PDF viewer (PDF sources)
 - Extracted text viewer
 - CLI support for add/list/search/show/shelf management
 
@@ -33,9 +33,10 @@ doc-shelf/
 ├── src/
 │   ├── main.py                 # CLI entry point
 │   ├── pdf_extractor.py        # PDF text extraction (PyMuPDF)
+│   ├── eml_extractor.py        # EML text extraction (email parser)
 │   ├── reader_claude.py        # Claude Code CLI reader
 │   ├── reader_codex.py         # Codex CLI reader
-│   ├── storage.py              # JSON / Markdown / Text / PDF storage
+│   ├── storage.py              # JSON / Markdown / Text / source file storage
 │   ├── library.py              # Index and shelf management
 │   └── server/
 │       ├── app.py              # FastAPI app
@@ -109,7 +110,10 @@ npm run dev
 # Add a PDF
 doc-shelf add ./sample.pdf
 
-# Add a PDF without LLM reading
+# Add an EML
+doc-shelf add ./sample.eml
+
+# Add without LLM reading
 doc-shelf add ./sample.pdf --reader none
 
 # Add a PDF with only Claude
@@ -136,6 +140,7 @@ By default, data is stored under `library/`:
 - `library/markdown/`: human-readable preview markdown
 - `library/texts/`: full extracted text
 - `library/pdfs/`: archived source PDFs
+- `library/emls/`: archived source EML files
 - `library/index.json`: library/shelf index
 
 ## License

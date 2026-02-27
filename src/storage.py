@@ -21,19 +21,22 @@ def save(
     source_name: str = "",
     readings: dict[str, dict] | None = None,
 ) -> str:
-    """Save extracted document data and source PDF. Returns document_id."""
+    """Save extracted document data and source file. Returns document_id."""
     title = _get_title(document.metadata, source_name)
     document_id = generate_document_id(title)
+    source_type = _detect_source_type(source_name, document.source_path)
 
     json_dir = os.path.join(output_dir, "json")
     md_dir = os.path.join(output_dir, "markdown")
     text_dir = os.path.join(output_dir, "texts")
     pdf_dir = os.path.join(output_dir, "pdfs")
+    eml_dir = os.path.join(output_dir, "emls")
 
     os.makedirs(json_dir, exist_ok=True)
     os.makedirs(md_dir, exist_ok=True)
     os.makedirs(text_dir, exist_ok=True)
     os.makedirs(pdf_dir, exist_ok=True)
+    os.makedirs(eml_dir, exist_ok=True)
 
     document_id = _resolve_conflict(document_id, json_dir)
 
@@ -62,14 +65,17 @@ def save(
         logger.warning("Failed to save extracted text: %s", e)
 
     if document.source_path and os.path.exists(document.source_path):
-        pdf_dest = os.path.join(pdf_dir, f"{document_id}.pdf")
+        if source_type == "eml":
+            source_dest = os.path.join(eml_dir, f"{document_id}.eml")
+        else:
+            source_dest = os.path.join(pdf_dir, f"{document_id}.pdf")
         try:
-            shutil.copy2(document.source_path, pdf_dest)
-            record["source_file"] = pdf_dest
+            shutil.copy2(document.source_path, source_dest)
+            record["source_file"] = source_dest
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(record, f, ensure_ascii=False, indent=2)
         except OSError as e:
-            logger.warning("Failed to copy source PDF: %s", e)
+            logger.warning("Failed to copy source file: %s", e)
 
     return document_id
 
@@ -105,6 +111,13 @@ def _get_title(metadata: dict, source_name: str) -> str:
         return Path(source_name).stem
 
     return "Untitled Document"
+
+
+def _detect_source_type(source_name: str, source_path: str = "") -> str:
+    ext = Path(source_name).suffix.lower() or Path(source_path).suffix.lower()
+    if ext == ".eml":
+        return "eml"
+    return "pdf"
 
 
 def _tags_from_metadata(metadata: dict) -> list[str]:
@@ -159,6 +172,7 @@ def _build_json_record(
     return {
         "document_id": document_id,
         "title": _get_title(metadata, source_name),
+        "source_type": _detect_source_type(source_name, document.source_path),
         "author": metadata.get("author", ""),
         "subject": metadata.get("subject", ""),
         "creator": metadata.get("creator", ""),
@@ -184,6 +198,8 @@ def _render_markdown(record: dict, text: str) -> str:
     lines.append(f"**Pages:** {record['page_count']}  ")
     lines.append(f"**Characters:** {record['char_count']}  ")
     lines.append(f"**Uploaded:** {record['uploaded_date']}  ")
+    if record.get("source_type"):
+        lines.append(f"**Source Type:** {str(record['source_type']).upper()}  ")
     if record.get("readers_used"):
         lines.append(f"**Readers:** {', '.join(record['readers_used'])}  ")
     lines.append("")

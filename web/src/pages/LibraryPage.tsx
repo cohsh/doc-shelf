@@ -118,7 +118,7 @@ export default function LibraryPage() {
               <>
                 <h3>No documents in the library yet</h3>
                 <p>
-                  <Link to="/upload">Upload a PDF</Link> to get started.
+                  <Link to="/upload">Upload a document</Link> to get started.
                 </p>
               </>
             )}

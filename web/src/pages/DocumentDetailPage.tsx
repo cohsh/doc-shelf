@@ -10,6 +10,21 @@ import {
 import type { DocumentDetail, Shelf } from "../types/document";
 import TagBadge from "../components/TagBadge";
 
+function detectSourceType(document: DocumentDetail | null): "pdf" | "eml" | "unknown" {
+  if (!document) return "unknown";
+  const sourceType = (document.source_type || "").toLowerCase();
+  if (sourceType === "pdf" || sourceType === "eml") return sourceType;
+
+  const sourceName = (document.source_name || "").toLowerCase();
+  if (sourceName.endsWith(".pdf")) return "pdf";
+  if (sourceName.endsWith(".eml")) return "eml";
+
+  const sourceFile = (document.source_file || "").toLowerCase();
+  if (sourceFile.endsWith(".pdf")) return "pdf";
+  if (sourceFile.endsWith(".eml")) return "eml";
+  return "unknown";
+}
+
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -38,6 +53,7 @@ export default function DocumentDetailPage() {
         setDocument(doc);
         setAllShelves(shelves);
         setSelectedShelfIds(doc.shelves || []);
+        setShowPdf(detectSourceType(doc) === "pdf");
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -109,6 +125,8 @@ export default function DocumentDetailPage() {
   }
 
   const pdfUrl = `/api/documents/${document.document_id}/pdf`;
+  const sourceType = detectSourceType(document);
+  const isPdf = sourceType === "pdf";
   const currentShelves = document.shelves || [];
   const readings = document.readings || {};
   const hasReadings = Boolean(readings.claude || readings.codex);
@@ -196,9 +214,11 @@ export default function DocumentDetailPage() {
         )}
 
         <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="btn" onClick={() => setShowPdf((prev) => !prev)}>
-            {showPdf ? "Hide PDF" : "Show PDF"}
-          </button>
+          {isPdf && (
+            <button className="btn" onClick={() => setShowPdf((prev) => !prev)}>
+              {showPdf ? "Hide PDF" : "Show PDF"}
+            </button>
+          )}
           <button className="btn" onClick={() => setShowText((prev) => !prev)}>
             {showText ? "Hide Text" : "Show Extracted Text"}
           </button>
@@ -333,7 +353,7 @@ export default function DocumentDetailPage() {
         </div>
       )}
 
-      {showPdf && (
+      {isPdf && showPdf && (
         <div style={{ marginTop: 24 }}>
           <h2 style={{ marginBottom: 12 }}>PDF Viewer</h2>
           <iframe

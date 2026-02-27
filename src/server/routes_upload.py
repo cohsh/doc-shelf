@@ -4,6 +4,7 @@ import shutil
 import tempfile
 import threading
 from dataclasses import asdict
+from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Request, UploadFile
 
@@ -25,10 +26,18 @@ async def upload_document(
             detail="reader must be none, claude, codex, or both",
         )
 
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Missing filename")
 
-    with tempfile.NamedTemporaryFile(suffix=".pdf", prefix="upload_", delete=False) as tmp:
+    extension = Path(file.filename).suffix.lower()
+    if extension not in (".pdf", ".eml"):
+        raise HTTPException(status_code=400, detail="Only PDF and EML files are accepted")
+
+    with tempfile.NamedTemporaryFile(
+        suffix=extension,
+        prefix="upload_",
+        delete=False,
+    ) as tmp:
         shutil.copyfileobj(file.file, tmp)
         temp_path = tmp.name
 

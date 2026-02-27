@@ -6,7 +6,7 @@ interface Props {
 }
 
 const STEPS: { key: TaskStatusValue; label: string }[] = [
-  { key: "extracting", label: "Extracting text from PDF" },
+  { key: "extracting", label: "Extracting text" },
   { key: "reading_claude", label: "Claude is reading the document" },
   { key: "reading_codex", label: "Codex is reading the document" },
   { key: "saving", label: "Saving document" },

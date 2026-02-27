@@ -144,7 +144,7 @@ export default function UploadPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
-      <h2 style={{ marginBottom: 24 }}>Upload PDFs</h2>
+      <h2 style={{ marginBottom: 24 }}>Upload Documents (PDF/EML)</h2>
 
       <UploadDropzone
         onFilesSelected={handleFilesSelected}
@@ -266,7 +266,7 @@ export default function UploadPage() {
 
           {allDone && (
             <button className="btn" onClick={handleReset} style={{ marginTop: 8 }}>
-              Upload More PDFs
+              Upload More Files
             </button>
           )}
         </div>

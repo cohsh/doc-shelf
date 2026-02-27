@@ -6,6 +6,10 @@ class PDFExtractionError(DocShelfError):
     """Error during PDF text extraction."""
 
 
+class EMLExtractionError(DocShelfError):
+    """Error during EML text extraction."""
+
+
 class ReaderError(DocShelfError):
     """Error during LLM reading."""
 

@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
-from src import library, pdf_extractor, reader_claude, reader_codex, storage
+from src import eml_extractor, library, pdf_extractor, reader_claude, reader_codex, storage
 from src.exceptions import DocShelfError, ReaderError, StorageError
 
 console = Console()
@@ -18,13 +19,13 @@ logger = logging.getLogger("doc-shelf")
 @click.group()
 @click.option("--verbose", is_flag=True, help="Show detailed progress")
 def cli(verbose: bool) -> None:
-    """Doc Shelf - Organize and browse any PDF documents."""
+    """Doc Shelf - Organize and browse PDF/EML documents."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(level=level, format="%(message)s")
 
 
 @cli.command()
-@click.argument("pdf_path", type=click.Path(exists=True))
+@click.argument("file_path", type=click.Path(exists=True))
 @click.option(
     "--reader",
     type=click.Choice(["none", "claude", "codex", "both"]),
@@ -34,15 +35,23 @@ def cli(verbose: bool) -> None:
 @click.option("--shelf", "shelf_ids", multiple=True, help="Assign to shelf(s)")
 @click.option("--output-dir", type=click.Path(), default="library", help="Output directory")
 def add(
-    pdf_path: str,
+    file_path: str,
     reader: str,
     shelf_ids: tuple[str, ...],
     output_dir: str,
 ) -> None:
-    """Add a PDF document to the library."""
-    console.print(f"[bold]Extracting text from:[/bold] {pdf_path}")
+    """Add a PDF or EML document to the library."""
+    extension = Path(file_path).suffix.lower()
+    file_label = "PDF" if extension == ".pdf" else "EML" if extension == ".eml" else "document"
+    console.print(f"[bold]Extracting text from {file_label}:[/bold] {file_path}")
     try:
-        document = pdf_extractor.extract(pdf_path)
+        if extension == ".pdf":
+            document = pdf_extractor.extract(file_path)
+        elif extension == ".eml":
+            document = eml_extractor.extract(file_path)
+        else:
+            console.print("[red]Error:[/red] Only PDF and EML files are supported.")
+            raise SystemExit(1)
     except DocShelfError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
@@ -79,7 +88,7 @@ def add(
         document_id = storage.save(
             document,
             output_dir,
-            source_name=pdf_path,
+            source_name=file_path,
             readings=readings,
         )
         library.update_index(

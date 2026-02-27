@@ -10,6 +10,7 @@ export interface Shelf {
 export interface DocumentSummary {
   document_id: string;
   title: string;
+  source_type?: string;
   author: string;
   subject: string;
   uploaded_date: string;
@@ -39,6 +40,7 @@ export interface ReadingResult {
 export interface DocumentDetail {
   document_id: string;
   title: string;
+  source_type?: string;
   author: string;
   subject: string;
   creator: string;
