@@ -7,6 +7,15 @@ It is focused on organizing and reading any PDF files:
 - no related-paper or daily-feed features
 - simple upload, shelf organization, browsing, and search
 
+## Implementation Note
+
+This project was implemented with **GPT-5.3-Codex** (Codex coding agent workflow).
+
+## Reference Project
+
+- Local reference directory used during implementation: `../paper-shelf`
+- Source repository: [cohsh/paper-shelf](https://github.com/cohsh/paper-shelf)
+
 ## Features
 
 - Multi-file PDF upload
