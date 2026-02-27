@@ -1,0 +1,167 @@
+from __future__ import annotations
+
+import json
+import logging
+import os
+import re
+import shutil
+import unicodedata
+from datetime import datetime, timezone
+from pathlib import Path
+
+from src.exceptions import StorageError
+from src.pdf_extractor import ExtractedDocument
+
+logger = logging.getLogger(__name__)
+
+
+def save(document: ExtractedDocument, output_dir: str, source_name: str = "") -> str:
+    """Save extracted document data and source PDF. Returns document_id."""
+    title = _get_title(document.metadata, source_name)
+    document_id = generate_document_id(title)
+
+    json_dir = os.path.join(output_dir, "json")
+    md_dir = os.path.join(output_dir, "markdown")
+    text_dir = os.path.join(output_dir, "texts")
+    pdf_dir = os.path.join(output_dir, "pdfs")
+
+    os.makedirs(json_dir, exist_ok=True)
+    os.makedirs(md_dir, exist_ok=True)
+    os.makedirs(text_dir, exist_ok=True)
+    os.makedirs(pdf_dir, exist_ok=True)
+
+    document_id = _resolve_conflict(document_id, json_dir)
+
+    record = _build_json_record(document, document_id, source_name)
+
+    json_path = os.path.join(json_dir, f"{document_id}.json")
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(record, f, ensure_ascii=False, indent=2)
+    except OSError as e:
+        raise StorageError(f"Failed to write JSON file: {e}") from e
+
+    markdown_path = os.path.join(md_dir, f"{document_id}.md")
+    markdown = _render_markdown(record, document.text)
+    try:
+        with open(markdown_path, "w", encoding="utf-8") as f:
+            f.write(markdown)
+    except OSError as e:
+        raise StorageError(f"Failed to write Markdown file: {e}") from e
+
+    text_path = os.path.join(text_dir, f"{document_id}.txt")
+    try:
+        with open(text_path, "w", encoding="utf-8") as f:
+            f.write(document.text)
+    except OSError as e:
+        logger.warning("Failed to save extracted text: %s", e)
+
+    if document.source_path and os.path.exists(document.source_path):
+        pdf_dest = os.path.join(pdf_dir, f"{document_id}.pdf")
+        try:
+            shutil.copy2(document.source_path, pdf_dest)
+            record["source_file"] = pdf_dest
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(record, f, ensure_ascii=False, indent=2)
+        except OSError as e:
+            logger.warning("Failed to copy source PDF: %s", e)
+
+    return document_id
+
+
+def generate_document_id(value: str) -> str:
+    """Create a URL-safe slug from title or filename."""
+    if not value:
+        return "untitled"
+
+    normalized = unicodedata.normalize("NFKD", value)
+    cleaned = re.sub(r"[^\w\s-]", "", normalized).strip().lower()
+    slug = re.sub(r"[\s_]+", "-", cleaned)
+    slug = slug[:80].rstrip("-")
+    return slug or "untitled"
+
+
+def _resolve_conflict(document_id: str, json_dir: str) -> str:
+    if not os.path.exists(os.path.join(json_dir, f"{document_id}.json")):
+        return document_id
+
+    i = 2
+    while os.path.exists(os.path.join(json_dir, f"{document_id}-{i}.json")):
+        i += 1
+    return f"{document_id}-{i}"
+
+
+def _get_title(metadata: dict, source_name: str) -> str:
+    title = (metadata.get("title") or "").strip()
+    if title:
+        return title
+
+    if source_name:
+        return Path(source_name).stem
+
+    return "Untitled Document"
+
+
+def _tags_from_metadata(metadata: dict) -> list[str]:
+    raw = metadata.get("keywords", "") or metadata.get("subject", "") or ""
+    if not raw:
+        return []
+
+    chunks = re.split(r"[,;]", raw)
+    tags: list[str] = []
+    for chunk in chunks:
+        tag = chunk.strip()
+        if tag and tag.lower() not in {t.lower() for t in tags}:
+            tags.append(tag)
+        if len(tags) >= 8:
+            break
+    return tags
+
+
+def _build_json_record(
+    document: ExtractedDocument,
+    document_id: str,
+    source_name: str,
+) -> dict:
+    metadata = document.metadata
+    return {
+        "document_id": document_id,
+        "title": _get_title(metadata, source_name),
+        "author": metadata.get("author", ""),
+        "subject": metadata.get("subject", ""),
+        "creator": metadata.get("creator", ""),
+        "creation_date": metadata.get("creation_date", ""),
+        "uploaded_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "source_name": source_name,
+        "source_file": document.source_path,
+        "page_count": document.page_count,
+        "char_count": document.char_count,
+        "tags": _tags_from_metadata(metadata),
+    }
+
+
+def _render_markdown(record: dict, text: str) -> str:
+    lines: list[str] = []
+    lines.append(f"# {record['title']}")
+    lines.append("")
+    lines.append(f"**Document ID:** {record['document_id']}  ")
+    lines.append(f"**Author:** {record['author'] or 'Unknown'}  ")
+    lines.append(f"**Subject:** {record['subject'] or 'N/A'}  ")
+    lines.append(f"**Pages:** {record['page_count']}  ")
+    lines.append(f"**Characters:** {record['char_count']}  ")
+    lines.append(f"**Uploaded:** {record['uploaded_date']}  ")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("## Extracted Text (Preview)")
+    lines.append("")
+
+    preview = text[:8000]
+    if len(text) > 8000:
+        preview += "\n\n... (truncated in markdown preview, full text is saved in library/texts/)"
+
+    lines.append("```")
+    lines.append(preview)
+    lines.append("```")
+
+    return "\n".join(lines) + "\n"

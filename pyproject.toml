@@ -1,0 +1,29 @@
+[project]
+name = "doc-shelf"
+version = "0.1.0"
+description = "A personal PDF bookshelf for organizing and reading any documents"
+requires-python = ">=3.11"
+dependencies = [
+    "pymupdf>=1.25.0",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.20",
+]
+
+[project.scripts]
+doc-shelf = "src.main:cli"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
