@@ -9,8 +9,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 
-from src import eml_extractor, library, pdf_extractor, reader_claude, reader_codex, storage
-from src.exceptions import DocShelfError, ReaderError, StorageError
+from doc_shelf import eml_extractor, library, pdf_extractor, reader_claude, reader_codex, storage
+from doc_shelf.exceptions import DocShelfError, ReaderError, StorageError
 
 console = Console()
 logger = logging.getLogger("doc-shelf")
@@ -316,7 +316,7 @@ def serve(host: str, port: int, output_dir: str, dev: bool) -> None:
     """Start the web interface."""
     import uvicorn
 
-    from src.server.app import create_app
+    from doc_shelf.server.app import create_app
 
     app = create_app(output_dir=output_dir, dev_mode=dev)
     console.print("[bold]Starting Doc Shelf web UI[/bold]")

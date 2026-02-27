@@ -9,8 +9,8 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.exceptions import StorageError
-from src.pdf_extractor import ExtractedDocument
+from doc_shelf.exceptions import StorageError
+from doc_shelf.pdf_extractor import ExtractedDocument
 
 logger = logging.getLogger(__name__)
 

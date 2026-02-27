@@ -30,7 +30,7 @@ This project was implemented with **GPT-5.3-Codex** (Codex coding agent workflow
 
 ```text
 doc-shelf/
-├── src/
+├── doc_shelf/
 │   ├── main.py                 # CLI entry point
 │   ├── pdf_extractor.py        # PDF text extraction (PyMuPDF)
 │   ├── eml_extractor.py        # EML text extraction (email parser)
@@ -76,7 +76,7 @@ npm run build
 cd ..
 ```
 
-`npm run build` outputs the frontend bundle to `src/server/static`.
+`npm run build` outputs the frontend bundle to `doc_shelf/server/static`.
 
 ## Run
 

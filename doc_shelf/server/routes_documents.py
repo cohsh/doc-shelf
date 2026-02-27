@@ -5,8 +5,8 @@ import os
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
-from src import library
-from src.exceptions import StorageError
+from doc_shelf import library
+from doc_shelf.exceptions import StorageError
 
 router = APIRouter()
 

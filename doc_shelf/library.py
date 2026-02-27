@@ -4,8 +4,8 @@ import json
 import os
 from datetime import datetime, timezone
 
-from src.exceptions import StorageError
-from src.storage import generate_document_id
+from doc_shelf.exceptions import StorageError
+from doc_shelf.storage import generate_document_id
 
 UNSORTED_SHELF_ID = "__unsorted__"
 UNSORTED_SHELF_NAME = "Unsorted"

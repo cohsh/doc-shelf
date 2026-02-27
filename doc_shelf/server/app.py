@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.server.tasks import TaskManager
+from doc_shelf.server.tasks import TaskManager
 
 
 def create_app(output_dir: str = "library", dev_mode: bool = False) -> FastAPI:
@@ -25,9 +25,9 @@ def create_app(output_dir: str = "library", dev_mode: bool = False) -> FastAPI:
             allow_headers=["*"],
         )
 
-    from src.server.routes_documents import router as documents_router
-    from src.server.routes_shelves import router as shelves_router
-    from src.server.routes_upload import router as upload_router
+    from doc_shelf.server.routes_documents import router as documents_router
+    from doc_shelf.server.routes_shelves import router as shelves_router
+    from doc_shelf.server.routes_upload import router as upload_router
 
     app.include_router(documents_router, prefix="/api")
     app.include_router(shelves_router, prefix="/api")

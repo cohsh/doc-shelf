@@ -7,8 +7,8 @@ from email.message import EmailMessage
 from email.parser import BytesParser
 from html import unescape
 
-from src.exceptions import EMLExtractionError
-from src.pdf_extractor import ExtractedDocument
+from doc_shelf.exceptions import EMLExtractionError
+from doc_shelf.pdf_extractor import ExtractedDocument
 
 
 def extract(eml_path: str) -> ExtractedDocument:

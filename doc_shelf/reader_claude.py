@@ -3,32 +3,22 @@ from __future__ import annotations
 import json
 import logging
 import os
-import shutil
 import subprocess
 import tempfile
 
-from src.exceptions import CodexReaderError
-from src.pdf_extractor import ExtractedDocument
+from doc_shelf.exceptions import ClaudeReaderError
+from doc_shelf.pdf_extractor import ExtractedDocument
 
 logger = logging.getLogger(__name__)
 
 PROMPT_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts", "reading_prompt.txt")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts", "schema.json")
 
-MAX_TEXT_LENGTH = 80000
-
-
-def is_available() -> bool:
-    return shutil.which("codex") is not None
+MAX_TEXT_LENGTH = 120000
 
 
 def read(document: ExtractedDocument) -> dict:
-    """Read a document using Codex CLI and return structured JSON."""
-    if not is_available():
-        raise CodexReaderError(
-            "Codex CLI not found. Install it with: npm install -g @openai/codex"
-        )
-
+    """Read a document using Claude Code CLI and return structured JSON."""
     prompt_template = _load_prompt()
     schema = _load_schema()
 
@@ -50,78 +40,71 @@ def read(document: ExtractedDocument) -> dict:
     )
 
     with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".txt", delete=False, prefix="doc_codex_"
+        mode="w", suffix=".txt", delete=False, prefix="doc_"
     ) as f:
         f.write(prompt)
         prompt_file = f.name
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False, prefix="schema_codex_"
-    ) as f:
-        json.dump(schema, f)
-        schema_file = f.name
-
-    output_file = tempfile.mktemp(suffix=".json", prefix="codex_output_")
-
     try:
         cmd = [
-            "codex",
-            "exec",
+            "claude",
+            "-p",
             (
                 f"Read the file at {prompt_file} and follow the instructions in it. "
-                "Respond ONLY with valid JSON matching the schema."
+                f"Respond ONLY with valid JSON matching this schema: {json.dumps(schema)}"
             ),
-            "--full-auto",
-            "--output-schema",
-            schema_file,
-            "-o",
-            output_file,
+            "--output-format",
+            "json",
+            "--allowedTools",
+            "Read",
         ]
 
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=600,
+            env=env,
         )
 
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip()
             detail = detail[:1200]
-            raise CodexReaderError(
-                f"Codex CLI failed (exit code {result.returncode}): {detail}"
+            raise ClaudeReaderError(
+                f"Claude CLI failed (exit code {result.returncode}): {detail}"
             )
 
-        return _parse_output(output_file, result.stdout)
+        return _parse_response(result.stdout)
     except subprocess.TimeoutExpired:
-        raise CodexReaderError("Codex CLI timed out after 600 seconds")
+        raise ClaudeReaderError("Claude CLI timed out after 600 seconds")
     except FileNotFoundError:
-        raise CodexReaderError(
-            "Codex CLI not found. Install it with: npm install -g @openai/codex"
+        raise ClaudeReaderError(
+            "Claude CLI not found. Install it with: npm install -g @anthropic-ai/claude-code"
         )
     finally:
-        for path in (prompt_file, schema_file, output_file):
-            try:
-                os.unlink(path)
-            except OSError:
-                pass
+        try:
+            os.unlink(prompt_file)
+        except OSError:
+            pass
 
 
-def _parse_output(output_file: str, stdout: str) -> dict:
-    if os.path.exists(output_file):
-        with open(output_file, encoding="utf-8") as f:
-            content = f.read().strip()
-        if content:
-            parsed = _extract_json(content)
+def _parse_response(stdout: str) -> dict:
+    try:
+        response = json.loads(stdout)
+    except json.JSONDecodeError as e:
+        raise ClaudeReaderError(f"Failed to parse Claude output as JSON: {e}") from e
+
+    if isinstance(response, dict):
+        text = response.get("result", "")
+        if text:
+            parsed = _extract_json(text)
             if parsed:
                 return parsed
+        if "summary" in response:
+            return response
 
-    if stdout.strip():
-        parsed = _extract_json(stdout.strip())
-        if parsed:
-            return parsed
-
-    raise CodexReaderError("No structured output received from Codex CLI")
+    raise ClaudeReaderError("Could not extract structured reading JSON from Claude output")
 
 
 def _extract_json(text: str) -> dict | None:

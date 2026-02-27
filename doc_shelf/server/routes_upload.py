@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Request, UploadFile
 
-from src.server.tasks import TaskManager, run_ingest_pipeline
+from doc_shelf.server.tasks import TaskManager, run_ingest_pipeline
 
 router = APIRouter()
 

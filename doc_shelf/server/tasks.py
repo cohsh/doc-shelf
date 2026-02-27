@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.exceptions import ReaderError
+from doc_shelf.exceptions import ReaderError
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,8 @@ def run_ingest_pipeline(
     reader_choice: str = "both",
 ) -> None:
     """Run extract -> optional read -> save -> index pipeline."""
-    from src import eml_extractor, library, pdf_extractor, storage
-    from src import reader_claude, reader_codex
+    from doc_shelf import eml_extractor, library, pdf_extractor, storage
+    from doc_shelf import reader_claude, reader_codex
 
     try:
         source_ext = Path(source_name or source_path).suffix.lower()
